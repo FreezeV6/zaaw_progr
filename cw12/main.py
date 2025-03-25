@@ -1,0 +1,12 @@
+from tasks import *
+from util import load_image
+
+if __name__ == "__main__":
+    PATH = 'images/ninja_turtle.jpg'
+    image = load_image(PATH)
+    # task_1(image)
+    # task_2(image)
+    # task_3(image)
+    # task_4(image)
+    # task_5(image)
+    task_6()
