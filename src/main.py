@@ -3,7 +3,7 @@ from utils.config import XML_PATH, IMAGES_DIR, CNN_MODEL_PATH, CROP_SIZE, TEST_R
 from utils.loader import load_cvat_xml
 from detector.plate_detector import train_plate_detector, load_plate_detector, predict_box
 from detector.ocr_reader import ocr_plate
-from utils.image_utils import crop_plate_from_yolo, draw_box_on_img, convert_to_yolo_box, yolo_to_box
+from utils.image_utils import crop_plate_from_yolo
 from utils.eval import calculate_accuracy, calculate_final_grade, calculate_iou
 import cv2
 import os
@@ -25,12 +25,10 @@ def main(train=True):
     for i, (img_path, true_box, true_plate, img_w, img_h) in enumerate(test_set[:10]):
         pred_box = predict_box(model, img_path, crop_size=(224, 224))
         plate_img = crop_plate_from_yolo(img_path, pred_box, img_w, img_h, out_size=CROP_SIZE)
-        img = cv2.imread(img_path)
-        img_pred = draw_box_on_img(img, pred_box, img_w, img_h, color=(0, 255, 0))
-        img_all = draw_box_on_img(img_pred, convert_to_yolo_box(*true_box, img_w, img_h), img_w, img_h, color=(0, 0, 255))
+        pred_plate = ocr_plate(plate_img)
+        print(f"GT: {true_plate} | OCR: {pred_plate}")
         out_path = f"debug_imgs/debug_result_{i}.jpg"
         crop_out_path = f"debug_crops/ocr_crop_{i}_{true_plate}.jpg"
-        cv2.imwrite(out_path, img_all)
         cv2.imwrite(crop_out_path, plate_img)
         pred_plate = ocr_plate(plate_img)
         print(f"GT: {true_plate} | OCR: {pred_plate}")

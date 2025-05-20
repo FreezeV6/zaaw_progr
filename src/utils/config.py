@@ -1,9 +1,9 @@
 # Paths
-XML_PATH = 'src/dataset/annotations.xml'
-IMAGES_DIR = 'src/dataset/photos'
+XML_PATH = 'dataset/annotations.xml'
+IMAGES_DIR = 'dataset/photos'
 
 # Model
-CNN_MODEL_PATH = 'src/detector/plate_resnet.pth'
+CNN_MODEL_PATH = 'detector/plate_resnet.pth'
 
 # Input shape for CNN
 CROP_SIZE = (224, 64)  # szerokość x wysokość
