@@ -1,26 +1,39 @@
-import os
 import xml.etree.ElementTree as ET
-from sklearn.model_selection import train_test_split
+import os
 
-def load_cvat_xml(xml_path, images_dir, test_ratio=0.2, random_seed=42):
+def load_cvat_xml(xml_path, images_dir, test_ratio, seed):
+    import random
+    random.seed(seed)
     tree = ET.parse(xml_path)
     root = tree.getroot()
-    data = []
-    for image_tag in root.iter('image'):
-        img_name = image_tag.attrib['name']
+    images = []
+    for img in root.findall(".//image"):
+        img_name = img.attrib['name']
         img_path = os.path.join(images_dir, img_name)
-        img_w = int(image_tag.attrib['width'])
-        img_h = int(image_tag.attrib['height'])
-        for box in image_tag.iter('box'):
-            label = box.attrib['label']
-            if label != "plate":
-                continue
-            xmin = float(box.attrib['xtl'])
-            ymin = float(box.attrib['ytl'])
-            xmax = float(box.attrib['xbr'])
-            ymax = float(box.attrib['ybr'])
-            plate_text = box.attrib.get('ocr_text', '').replace(" ", "").replace("-", "")
-            data.append([img_path, [xmin, ymin, xmax, ymax], plate_text, img_w, img_h])
-    train_set, test_set = train_test_split(
-        data, test_size=test_ratio, random_state=random_seed)
+        if not os.path.isfile(img_path):
+            continue
+        img_w = int(img.attrib['width'])
+        img_h = int(img.attrib['height'])
+        boxes = img.findall("box")
+        if len(boxes) == 0:
+            continue
+        box = boxes[0]
+        xmin = float(box.attrib['xtl'])
+        ymin = float(box.attrib['ytl'])
+        xmax = float(box.attrib['xbr'])
+        ymax = float(box.attrib['ybr'])
+        x_c = (xmin + xmax) / 2 / img_w
+        y_c = (ymin + ymax) / 2 / img_h
+        w = (xmax - xmin) / img_w
+        h = (ymax - ymin) / img_h
+        label = box.attrib.get('label', '')
+        # Tablica rejestracyjna (może pusta string)
+        plate = ""
+        if 'plate' in box.attrib:
+            plate = box.attrib['plate']
+        images.append((img_path, [x_c, y_c, w, h], plate, img_w, img_h))
+    random.shuffle(images)
+    split = int(len(images) * (1 - test_ratio))
+    train_set = images[:split]
+    test_set = images[split:]
     return train_set, test_set

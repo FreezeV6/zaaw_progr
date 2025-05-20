@@ -1,104 +1,107 @@
 import torch
-import torchvision
-from torch import nn
-from torch.utils.data import DataLoader, Dataset
-import cv2
+import torch.nn as nn
+from torchvision import models
 import numpy as np
-import random
-import os
+import cv2
 
-# ... tutaj wczytanie własnych utili, zależnie od projektu
-
-class PlateDataset(Dataset):
-    # Zaimplementuj z augmentacją – np. flipping, brightness, blur, noise
-    def __init__(self, samples, crop_size=(224,224), augment=False):
-        self.samples = samples
-        self.crop_size = crop_size
-        self.augment = augment
-
-    def __len__(self):
-        return len(self.samples)
-
-    def __getitem__(self, idx):
-        img_path, box, _, img_w, img_h = self.samples[idx]
-        img = cv2.imread(img_path)
-        img = cv2.resize(img, self.crop_size)
-        # Konwersja do [0,1], torch.Tensor itd.
-        img = img.astype(np.float32) / 255.0
-        img = np.transpose(img, (2,0,1))
-        # Augmentacje
-        if self.augment:
-            if random.random() > 0.5:
-                img = img[:, :, ::-1]  # flip
-                img = img.copy()  # flip
-            # inne augmentacje (np. gaussian blur, brightness)
-        target = np.array(box, dtype=np.float32)
-        return torch.tensor(img.copy()), torch.tensor(target)
-
-# Prosty model CNN jako regresor YOLO-style (można tu użyć np. MobileNet lub inny feature extractor)
-class SimplePlateDetector(nn.Module):
+# === MODEL: Transfer Learning ===
+class PlateDetector(nn.Module):
     def __init__(self):
         super().__init__()
-        self.conv = nn.Sequential(
-            nn.Conv2d(3,32,3,1,1), nn.ReLU(),
-            nn.Conv2d(32,64,3,1,1), nn.ReLU(),
-            nn.AdaptiveAvgPool2d((1,1))
-        )
-        self.fc = nn.Linear(64, 4)
+        self.backbone = models.resnet18(weights="IMAGENET1K_V1")
+        in_features = self.backbone.fc.in_features
+        self.backbone.fc = nn.Linear(in_features, 4)  # 4 for [x_c, y_c, w, h]
 
     def forward(self, x):
-        x = self.conv(x)
-        x = x.view(x.shape[0], -1)
-        return self.fc(x)
+        x = self.backbone(x)
+        # Clamp to [0,1] to force YOLO format
+        x = torch.sigmoid(x)
+        return x
 
-def train_plate_detector(train_set, test_set, model_path, crop_size, epochs, batch_size, lr):
-    model = SimplePlateDetector()
-    criterion = nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-    train_loader = DataLoader(PlateDataset(train_set, crop_size, augment=True), batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(PlateDataset(test_set, crop_size, augment=False), batch_size=batch_size)
-    best_loss = float("inf")
-    for epoch in range(epochs):
+# === TRAINING ===
+def train_plate_detector(train_set, val_set, model_path, crop_size, epochs, batch_size, lr):
+    import torch.optim as optim
+    from torch.utils.data import DataLoader, Dataset
+    import torch.nn.functional as F
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    # DATASET
+    class PlateDataset(Dataset):
+        def __init__(self, data):
+            self.data = data
+            self.crop_size = crop_size
+
+        def __len__(self):
+            return len(self.data)
+
+        def __getitem__(self, idx):
+            img_path, box, _, _, _ = self.data[idx]
+            img = cv2.imread(img_path)
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            img = cv2.resize(img, self.crop_size)
+            img = img.astype(np.float32) / 255.0
+            img = torch.from_numpy(img).permute(2, 0, 1)
+            box = torch.tensor(box, dtype=torch.float32)  # [x_c, y_c, w, h] in [0,1]
+            return img, box
+
+    train_ds = PlateDataset(train_set)
+    val_ds = PlateDataset(val_set)
+    train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True)
+    val_loader = DataLoader(val_ds, batch_size=batch_size)
+
+    model = PlateDetector().to(device)
+    optimizer = optim.Adam(model.parameters(), lr=lr)
+    best_val_loss = float('inf')
+
+    for epoch in range(1, epochs + 1):
         model.train()
-        train_loss = 0
+        total_train_loss = 0
         for imgs, targets in train_loader:
+            imgs, targets = imgs.to(device), targets.to(device)
             preds = model(imgs)
-            loss = criterion(preds, targets)
+            loss = F.mse_loss(preds, targets)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            train_loss += loss.item()
+            total_train_loss += loss.item() * imgs.size(0)
+        avg_train_loss = total_train_loss / len(train_ds)
+
         model.eval()
-        val_loss = 0
+        total_val_loss = 0
         with torch.no_grad():
             for imgs, targets in val_loader:
+                imgs, targets = imgs.to(device), targets.to(device)
                 preds = model(imgs)
-                loss = criterion(preds, targets)
-                val_loss += loss.item()
-        train_loss /= len(train_loader)
-        val_loss /= len(val_loader)
-        print(f"Epoch {epoch+1}/{epochs} | train_loss: {train_loss:.4f} | val_loss: {val_loss:.4f}")
-        if val_loss < best_loss:
-            best_loss = val_loss
-            torch.save(model.state_dict(), model_path)
+                loss = F.mse_loss(preds, targets)
+                total_val_loss += loss.item() * imgs.size(0)
+        avg_val_loss = total_val_loss / len(val_ds)
+
+        print(f"Epoch {epoch}/{epochs} | train_loss: {avg_train_loss:.2f} | val_loss: {avg_val_loss:.2f}")
+        if avg_val_loss < best_val_loss:
             print("Best model saved.")
+            best_val_loss = avg_val_loss
+            torch.save(model.state_dict(), model_path)
+
     print("Training finished.")
 
-def load_plate_detector(model_path, crop_size=(224,224)):
-    model = SimplePlateDetector()
-    model.load_state_dict(torch.load(model_path))
+def load_plate_detector(model_path, crop_size):
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = PlateDetector().to(device)
+    model.load_state_dict(torch.load(model_path, map_location=device))
     model.eval()
     return model
 
-def predict_box(model, img_path, crop_size=(224,224)):
+def predict_box(model, img_path, crop_size):
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     img = cv2.imread(img_path)
-    img = cv2.resize(img, crop_size)
-    img = img.astype(np.float32) / 255.0
-    img = np.transpose(img, (2,0,1))
-    img_tensor = torch.tensor(img).unsqueeze(0)
+    img_h, img_w = img.shape[:2]
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    img_resized = cv2.resize(img, crop_size)
+    img_tensor = torch.from_numpy(img_resized.astype(np.float32) / 255.0).permute(2, 0, 1).unsqueeze(0).to(device)
     with torch.no_grad():
-        pred = model(img_tensor).squeeze().numpy()
-    # fallback - center box if prediction is weird
-    if np.any(np.isnan(pred)) or np.max(pred) > 1.0 or np.min(pred) < 0:
-        pred = np.array([0.5, 0.5, 0.5, 0.2])
+        pred = model(img_tensor)[0].cpu().numpy()
+    # Clamp values (should be in [0,1])
+    pred = np.clip(pred, 0, 1)
+    # Debug print
+    print(f"[DEBUG] Predicted box YOLO: {pred}")
     return pred

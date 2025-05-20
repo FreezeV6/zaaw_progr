@@ -8,7 +8,7 @@ from utils.eval import calculate_accuracy, calculate_final_grade, calculate_iou
 import cv2
 import os
 
-def main(train=True):
+def main(train=True, debug=False):
     train_set, test_set = load_cvat_xml(XML_PATH, IMAGES_DIR, TEST_RATIO, RANDOM_SEED)
     if train:
         print("== Trening modelu detektora ==")
@@ -25,6 +25,8 @@ def main(train=True):
         pred_box = predict_box(model, img_path, crop_size=(224, 224))
         plate_img = crop_plate_from_yolo(img_path, pred_box, img_w, img_h, out_size=CROP_SIZE)
         pred_plate = ocr_plate(plate_img)
+        if debug:
+            print(f"[DEBUG] GT box: {true_box}, pred_box: {pred_box}")
         print(f"GT: {true_plate} | OCR: {pred_plate}")
         img = cv2.imread(img_path)
         img_pred = draw_box_on_img(img, pred_box, img_w, img_h, color=(0,255,0))
@@ -56,4 +58,4 @@ def main(train=True):
     print(f'Ocena końcowa: {calculate_final_grade(accuracy, total_time)}')
 
 if __name__ == '__main__':
-    main(train=False)
+    main(train=False, debug=True)
