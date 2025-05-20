@@ -1,10 +1,10 @@
 import unittest
-from src.utils.loader import convert_box_to_yolo
+from src.utils.image_utils import yolo_to_box
 from src.utils.eval import calculate_iou, calculate_accuracy
 
 class TestUtils(unittest.TestCase):
-    def test_convert_box_to_yolo(self):
-        box = convert_box_to_yolo(0, 0, 100, 50, 200, 100)
+    def yolo_to_box_test(self):
+        box = yolo_to_box(0, 0, 100, 50, 200, 100)
         self.assertAlmostEqual(box[0], 0.25)
         self.assertAlmostEqual(box[1], 0.25)
         self.assertAlmostEqual(box[2], 0.5)

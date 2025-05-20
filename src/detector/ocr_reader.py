@@ -1,10 +1,13 @@
 import easyocr
-from src.utils.config import OCR_LANGS
+import cv2
 
-reader = easyocr.Reader(OCR_LANGS)
+reader = easyocr.Reader(['pl'], gpu=False)
 
 def ocr_plate(plate_img):
-    result = reader.readtext(plate_img)
-    if not result:
-        return ""
-    return max(result, key=lambda x: x[2])[1].replace(" ", "").upper()
+    # EasyOCR expects RGB, ale mamy grayscale – działa OK, ale można powtórzyć 3 kanały
+    if len(plate_img.shape) == 2:
+        plate_img = cv2.cvtColor(plate_img, cv2.COLOR_GRAY2RGB)
+    result = reader.readtext(plate_img, allowlist='QWERTYUIOPASDFGHJKLZXCVBNM1234567890')
+    if result:
+        return result[0][1].replace(" ", "").replace("-", "")
+    return ""
