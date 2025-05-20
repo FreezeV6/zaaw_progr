@@ -1,0 +1,6 @@
+opencv-python
+easyocr
+RPi.GPIO
+yolov5
+torch
+torchvision
