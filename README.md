@@ -13,6 +13,7 @@
 2. `pip install -r requirements.txt`
 3. `python src/main.py`
 4. Wyniki i debug: w konsoli oraz w folderze debug_imgs/
+5. Testy: `python tests/`
 
 ## Autor
 FreezeV6
