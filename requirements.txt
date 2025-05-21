@@ -1,12 +1,16 @@
-opencv-python
-numpy
-PyYAML
-tqdm
-paddleocr
-albumentations
-scikit-learn
-torch
-ultralytics
-pytesseract
-cdifflib
-pytest
+# Pin NumPy to satisfy TF and all other deps:
+numpy==1.26.4
+
+torch==2.7.0                  # CPU-only PyTorch
+ultralytics==8.3.140          # YOLOv8 (latest real PyPI release)
+opencv-python==4.10.0.84      # SAHI-compatible OpenCV
+easyocr==1.7.2                # OCR wrapper (depends on torch)
+scikit-learn==1.6.1           # ML utilities
+onnx2tf==1.27.9               # ONNX→TF/TFLite converter
+
+# TensorFlow & tf-keras on Windows (CPU-only)
+tensorflow==2.19.0            ; sys_platform == "win32"
+tf-keras==2.19.0              ; sys_platform == "win32"
+
+# TFLite Runtime on Linux/ARM (Raspbian); skip on Windows
+tflite-runtime==2.14.0        ; sys_platform != "win32"
