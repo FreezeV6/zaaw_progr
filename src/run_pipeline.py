@@ -1,126 +1,125 @@
-import os, time, re
-from src import prepare_data, detector, ocr_engine
+# run_pipeline.py
 
-# 1. Prepare dataset (download and split) if not already done
-if not os.path.isdir('data/images/test'):
-    prepare_data.prepare_dataset()
+import os
+import time
+import cv2
+import argparse
 
-# 2. Load ground truth for test images
-gt_file = 'data/test_ground_truth.txt'
-if not os.path.exists(gt_file):
-    raise FileNotFoundError("Ground truth file not found. Please run prepare_data.py first.")
-test_entries = []
-with open(gt_file, 'r') as f:
-    for line in f:
-        parts = line.strip().split(',')
-        if len(parts) < 6:
-            continue
-        file_name = parts[0]
-        plate_text = parts[1]
-        # Parse ground truth bounding box coordinates
-        xtl, ytl, xbr, ybr = map(float, parts[2:])
-        test_entries.append({
-            "file": file_name,
-            "text": plate_text,
-            "bbox": (xtl, ytl, xbr, ybr)
-        })
+from prepare_data import DATA_DIR
+from plate_detector import PlateDetector
+from ocr_engine import OCREngine
+from debug_utils import (
+    save_plate_crops,
+    preprocess_for_tesseract,
+    ocr_tesseract,
+    apply_confusion_map,
+    ocr_on_crops
+)
 
-# 3. Initialize the YOLO plate detector (uses CPU or GPU depending on availability)
-plate_detector = detector.PlateDetector(weight_path='model/best.pt')
+def load_gt(gt_path):
+    if not os.path.isfile(gt_path):
+        raise FileNotFoundError(f"Ground truth file not found at {gt_path}. Please run prepare_data.py first.")
+    entries = []
+    with open(gt_path, encoding='utf-8') as f:
+        for line in f:
+            fn, plate = line.strip().split(maxsplit=1)
+            entries.append((fn, plate))
+    return entries
 
-# Counters for evaluation
-total_images = len(test_entries)
-easy_correct = 0
-tess_correct = 0
-detections_count = 0
-iou_sum = 0.0
-
-# 4. Run detection + EasyOCR on each test image, measure accuracy and IoU
-start_time = time.time()
-for entry in test_entries:
-    img_path = os.path.join('data/images/test', entry["file"])
-    plate_img, pred_bbox = plate_detector.detect_plate(img_path)
-    # Perform OCR with EasyOCR
-    pred_text_easy = "" if plate_img is None else ocr_engine.ocr_easy(plate_img)
-    # Normalize predictions and ground truth for comparison (remove spaces, uppercase)
-    pred_text_easy_norm = re.sub(r'\s+', '', pred_text_easy).upper()
-    true_text_norm = entry["text"].strip().upper()
-    if pred_text_easy_norm == true_text_norm:
-        easy_correct += 1
-    # If a plate was detected, evaluate detection quality (IoU)
-    if pred_bbox is not None:
-        detections_count += 1
-        # Calculate IoU between predicted bbox and ground truth bbox
-        x1_p, y1_p, x2_p, y2_p = pred_bbox
-        x1_g, y1_g, x2_g, y2_g = entry["bbox"]
-        inter_x1 = max(x1_p, x1_g); inter_y1 = max(y1_p, y1_g)
-        inter_x2 = min(x2_p, x2_g); inter_y2 = min(y2_p, y2_g)
-        if inter_x2 >= inter_x1 and inter_y2 >= inter_y1:
-            inter_area = (inter_x2 - inter_x1) * (inter_y2 - inter_y1)
-        else:
-            inter_area = 0.0
-        pred_area = (x2_p - x1_p) * (y2_p - y1_p)
-        gt_area = (x2_g - x1_g) * (y2_g - y1_g)
-        union_area = pred_area + gt_area - inter_area
-        iou_val = inter_area / union_area if union_area > 0 else 0.0
-        iou_sum += iou_val
-end_time = time.time()
-easy_time = end_time - start_time  # total time for EasyOCR pipeline
-
-# 5. Run detection + Tesseract OCR on each test image
-start_time = time.time()
-for entry in test_entries:
-    img_path = os.path.join('data/images/test', entry["file"])
-    plate_img, pred_bbox = plate_detector.detect_plate(img_path)
-    pred_text_tess = "" if plate_img is None else ocr_engine.ocr_tesseract(plate_img)
-    pred_text_tess_norm = re.sub(r'\s+', '', pred_text_tess).upper()
-    true_text_norm = entry["text"].strip().upper()
-    if pred_text_tess_norm == true_text_norm:
-        tess_correct += 1
-    # (We assume detection outcomes are the same as above, so IoU/detection count not recalculated here)
-end_time = time.time()
-tess_time = end_time - start_time  # total time for Tesseract pipeline
-
-# 6. Calculate accuracy metrics
-easy_accuracy = (easy_correct / total_images) * 100.0  # percentage of plates read correctly by EasyOCR
-tess_accuracy = (tess_correct / total_images) * 100.0  # percentage of plates read correctly by Tesseract
-
-# Calculate detection performance metrics
-mean_iou = (iou_sum / detections_count) if detections_count > 0 else 0.0
-detection_rate = (detections_count / total_images) * 100.0  # percentage of images where a plate was detected
-
-# 7. Define the grading function as per project specification
-def calculate_final_grade(accuracy_percent, processing_time_sec):
-    """
-    Calculates the final grade based on OCR accuracy and processing time for 100 images.
-    Returns a grade on a 2.0 - 5.0 scale (rounded to nearest 0.5).
-    """
-    # Minimum requirements: accuracy >= 60% and time <= 60s for 100 images
+def calculate_final_grade(accuracy_percent: float, processing_time_sec: float) -> float:
+    # minimum requirements
     if accuracy_percent < 60 or processing_time_sec > 60:
         return 2.0
-    # Normalize metrics to [0, 1] range
-    acc_norm = (accuracy_percent - 60) / 40.0  # 60% -> 0.0, 100% -> 1.0
-    time_norm = (60.0 - processing_time_sec) / 60.0  # 60s -> 0.0, 0s -> 1.0
-    if time_norm < 0:
-        time_norm = 0.0
-    # Weighted sum (0.7 accuracy, 0.3 time) mapped to [2.0, 5.0]
-    score = 2.0 + 3.0 * (0.7 * acc_norm + 0.3 * time_norm)
-    return round(score * 2) / 2  # round to nearest 0.5
+    accuracy_norm = (accuracy_percent - 60) / 40
+    time_norm = (60 - processing_time_sec) / 50  # 10s->1.0, 60s->0.0
+    score = 0.7 * accuracy_norm + 0.3 * time_norm
+    grade = 2.0 + 3.0 * score
+    return round(grade * 2) / 2
 
-# Extrapolate processing time to 100 images (if test set is not 100 images)
-easy_time_100 = easy_time * (100.0 / total_images)
-tess_time_100 = tess_time * (100.0 / total_images)
-easy_grade = calculate_final_grade(easy_accuracy, easy_time_100)
-tess_grade = calculate_final_grade(tess_accuracy, tess_time_100)
+def main(args):
+    img_dir = os.path.join(DATA_DIR, 'images')
+    gt_path = os.path.join(DATA_DIR, 'labels', 'val', 'gt.txt')
+    gt_entries = load_gt(gt_path)
 
-# 8. Print the evaluation report
-print(f"Total test images: {total_images}")
-print(f"Detection success rate: {detection_rate:.1f}%  (detected plates in {detections_count}/{total_images} images)")
-print(f"Mean IoU of detected plates: {mean_iou:.3f}")
-print(f"EasyOCR OCR Accuracy: {easy_accuracy:.2f}%  ({easy_correct}/{total_images} correct)")
-print(f"Tesseract OCR Accuracy: {tess_accuracy:.2f}%  ({tess_correct}/{total_images} correct)")
-print(f"EasyOCR total processing time for {total_images} images: {easy_time:.2f} seconds")
-print(f"Tesseract total processing time for {total_images} images: {tess_time:.2f} seconds")
-print(f"Average time per image: EasyOCR = {easy_time/total_images:.3f}s, Tesseract = {tess_time/total_images:.3f}s")
-print(f"Final grade (EasyOCR pipeline): {easy_grade:.1f} / 5.0")
-print(f"Final grade (Tesseract pipeline): {tess_grade:.1f} / 5.0")
+    # initialize detector & OCR engines
+    model_path = os.path.join(os.path.dirname(__file__), '..', 'models', 'best.pt')
+    detector = PlateDetector(model_path, conf_thres=0.25)
+    ocr_tess = OCREngine(use_easyocr=False)
+    ocr_easy = OCREngine(use_easyocr=True)
+
+    # -- debug mode: just save crops & run batch OCR on them, then exit
+    if args.debug:
+        debug_dir = os.path.join(DATA_DIR, 'debug')
+        crops_dir = os.path.join(debug_dir, 'crops')
+        os.makedirs(crops_dir, exist_ok=True)
+        print(f"[debug] Saving all detected plate crops to {crops_dir} …")
+        save_plate_crops(
+            model_path=model_path,
+            images_dir=img_dir,
+            output_dir=crops_dir,
+            conf_thresh=detector.conf_thres
+        )
+        csv_path = os.path.join(debug_dir, 'ocr_results.csv')
+        print(f"[debug] Running OCR on crops and writing results to {csv_path} …")
+        ocr_on_crops(crops_dir, csv_path)
+        print(f"[debug] Done. Inspect {crops_dir} and {csv_path}")
+        return
+
+    # -- normal evaluation
+    results = {}
+    engines = []
+    if args.ocr in ('tesseract', 'both'):
+        engines.append(('tesseract', ocr_tess))
+    if args.ocr in ('easyocr', 'both'):
+        engines.append(('easyocr', ocr_easy))
+
+    for engine_name, ocr in engines:
+        print(f"\n=== Evaluating OCR engine: {engine_name} ===")
+        correct = 0
+        times = []
+        for fn, gt_plate in gt_entries:
+            img_path = os.path.join(img_dir, fn)
+            img = cv2.imread(img_path)
+            start = time.time()
+            crops = detector.detect_and_crop(img)
+            # assume one plate per image; pick the highest‐score crop
+            if crops:
+                plate_img, _ = max(crops, key=lambda x: x[1])
+                pred = ocr.recognize(plate_img)
+            else:
+                pred = ''
+            elapsed = time.time() - start
+            times.append(elapsed)
+            ok = (pred == gt_plate)
+            correct += ok
+            print(f"{fn:8s} GT={gt_plate:10s} PRED={pred:10s} {'✓' if ok else '✗'}")
+        total = len(gt_entries)
+        acc  = correct / total * 100
+        t100 = sum(times) / total * 100
+        grade = calculate_final_grade(acc, t100)
+        print(f"\n→ {engine_name}: Accuracy {acc:.2f}% ({correct}/{total}), "
+              f"Time @100 imgs: {t100:.1f}s, Grade: {grade:.1f}\n")
+        results[engine_name] = (acc, t100, grade)
+
+    # final summary if single engine
+    if args.ocr != 'both':
+        acc, t100, grade = results[args.ocr]
+        print(f"\nFinal ({args.ocr}): acc={acc:.2f}%, time100={t100:.1f}s, grade={grade:.1f}")
+
+    return results
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--ocr',
+        choices=['tesseract','easyocr','both'],
+        default='both',
+        help="Which OCR engine(s) to evaluate"
+    )
+    parser.add_argument(
+        '--debug',
+        action='store_true',
+        help="Run debug: save plate crops and batch-OCR them, then exit"
+    )
+    args = parser.parse_args()
+    main(args)

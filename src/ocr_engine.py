@@ -2,33 +2,23 @@ import cv2
 import pytesseract
 import easyocr
 
-# Initialize EasyOCR Reader for English characters (license plates use A-Z,0-9)
-# Using GPU=False for compatibility; set True to use GPU if available for faster OCR.
-reader = easyocr.Reader(['en'], gpu=False)
+class OCREngine:
+    def __init__(self, use_easyocr: bool = False):
+        self.use_easyocr = use_easyocr
+        if self.use_easyocr:
+            # English uppercase + digits
+            self.reader = easyocr.Reader(['en'], gpu=True)
 
-def ocr_easy(image):
-    """
-    Perform OCR using EasyOCR on the given plate image.
-    Returns the recognized text (or empty string if nothing is detected).
-    """
-    # EasyOCR accepts a file path or an image array (OpenCV image).
-    result = reader.readtext(image, detail=0)
-    if len(result) == 0:
-        return ""
-    # Join all detected text parts (for plates, there is usually only one part)
-    text = " ".join(result)
-    return text.strip()
-
-def ocr_tesseract(image):
-    """
-    Perform OCR using Tesseract on the given plate image.
-    Returns the recognized text.
-    """
-    # Convert image to grayscale for better OCR results
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    # Apply Otsu's threshold to binarize the image (black text on white background)
-    _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    # Configure Tesseract: assume a single line of text (--psm 6) and restrict char set to alphanumeric
-    config = "--psm 6 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-    text = pytesseract.image_to_string(thresh, config=config)
-    return text.strip()
+    def recognize(self, plate_img):
+        # convert to gray
+        gray = cv2.cvtColor(plate_img, cv2.COLOR_BGR2GRAY)
+        if self.use_easyocr:
+            res = self.reader.readtext(gray, detail=0)
+            # concatenate lines
+            return ''.join(res).replace(' ', '').upper()
+        else:
+            # simple preprocessing
+            # You can experiment with thresholding here
+            config = '--psm 7 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+            txt = pytesseract.image_to_string(gray, config=config)
+            return txt.strip().replace(' ', '').upper()
