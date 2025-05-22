@@ -1,5 +1,5 @@
 import time
-from utils import crop_image, compute_iou
+from src.utils import crop_image, compute_iou
 
 def calculate_final_grade(accuracy_percent: float, processing_time_sec: float) -> float:
     if accuracy_percent < 60 or processing_time_sec > 60:

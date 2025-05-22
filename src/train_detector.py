@@ -14,7 +14,7 @@ def train(data_yaml: str, epochs: int, imgsz: int, batch: int, model_size: str):
         name='plate-detector'
     )
     # Eksport do TFLite
-    model.export(format='tflite')
+    model.export(format='onnx')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

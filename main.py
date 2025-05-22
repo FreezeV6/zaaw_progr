@@ -2,8 +2,7 @@ import os
 from src.data_utils import prepare_dataset
 from src.train_detector import train
 from src.plate_detector import PlateDetector
-from src.plate_ocr import PlateOCR
-from src.evaluate import evaluate
+import cv2
 
 def run_training():
     train(
@@ -15,21 +14,29 @@ def run_training():
     )
 
 def run_evaluation():
-    detector = PlateDetector('models/best_plate_model.tflite', threshold=0.25)
-    ocr = PlateOCR(gpu=False)
-    # Parsowanie testowych rekordów (po podziale)
-    _, test_recs = prepare_dataset(
-        xml_path='data/annotations.xml',
-        images_src_dir='data/images',    # tutaj Twoje oryginały
-        images_dst_dir='data/images',    # nadpisujemy w subfolderach
-        labels_dst_dir='data/labels',
-        test_size=0.3
-    )
-    acc, miou, ttime, grade = evaluate(detector, ocr, test_recs, 'data/images')
-    print(f"Accuracy OCR: {acc:.2f}%")
-    print(f"Mean IoU:     {miou:.2f}%")
-    print(f"Time (100 imgs ext.): {ttime:.2f} s")
-    print(f"Final grade:  {grade:.1f}")
+    # wskazujesz swoją ścieżkę do wygenerowanego .onnx
+    model_path = "runs/detect/plate-detector10/weights/best.onnx"
+    detector = PlateDetector(model_path,
+                             conf_threshold=0.25,
+                             iou_threshold=0.45,
+                             input_size=640)
+
+    img_dir   = "data/images/val"
+    lbl_dir   = "data/labels/val"
+    # proste demo detekcji na zbiorze walidacyjnym:
+    for fname in sorted(os.listdir(img_dir)):
+        if not fname.lower().endswith((".jpg",".png")): continue
+        img_path = os.path.join(img_dir, fname)
+        img      = cv2.imread(img_path)
+        dets     = detector.detect(img)
+        print(f"{fname}: {dets}")
+        # narysuj i wyświetl:
+        for (x1,y1,x2,y2), score, cls in dets:
+            cv2.rectangle(img, (x1,y1), (x2,y2), (0,255,0), 2)
+            cv2.putText(img, f"{score:.2f}", (x1, y1-5),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1)
+        cv2.imshow("det", img); cv2.waitKey(1000)
+    cv2.destroyAllWindows()
 
 if __name__ == '__main__':
     # Przygotowanie danych + (opcjonalnie) trening + ewaluacja
@@ -41,5 +48,5 @@ if __name__ == '__main__':
         test_size=0.3
     )
     # Odkomentuj, jeśli chcesz trenować
-    run_training()
+    # run_training()
     run_evaluation()
