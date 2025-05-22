@@ -2,7 +2,7 @@ import cv2
 import pytesseract
 from PIL import Image
 
-def recognize_plate_text(image_path, bbox):
+def recognize_plate(image_path, bbox):
     """
     Rozpoznaje tekst tablicy rejestracyjnej na obrazie.
     :param image_path: ścieżka do pliku obrazka.

@@ -1,92 +1,94 @@
+import os
 import time
+import csv
+import argparse
 import logging
+
 from modules import dataset, detector, ocr, utils
 
-# Konfiguracja logowania
 logging.basicConfig(format="%(asctime)s [%(levelname)s] %(message)s", level=logging.INFO)
 
+def parse_args():
+    p = argparse.ArgumentParser(description="ALPR: train + eval or eval-only")
+    p.add_argument("--eval-only", action="store_true",
+                   help="Pomiń trening, od razu wczytaj wytrenowany model i wykonaj ewaluację")
+    p.add_argument("--weights", type=str, default=None,
+                   help="Ręczna ścieżka do pliku wag .pt (tylko przy --eval-only)")
+    return p.parse_args()
+
 def main():
-    # Ścieżki do danych wejściowych
-    photos_dir = "data/photos"
-    annotations_file = "data/annotations.xml"
+    args = parse_args()
+
     # 1. Przygotowanie danych
-    logging.info("Loading annotations from XML...")
-    data_list = dataset.load_annotations(annotations_file)
-    logging.info(f"Total images with plates: {len(data_list)}")
-    train_data, test_data = dataset.split_data(data_list, train_ratio=0.7)
-    logging.info(f"Split into {len(train_data)} training and {len(test_data)} testing examples.")
-    data_yaml = dataset.prepare_yolo_dataset(train_data, test_data, base_dir="data")
-    # 2. Trenowanie modelu detekcji tablic
-    model = detector.train_detector()
-    # 3. Detekcja na zbiorze testowym
-    test_image_paths = [f"data/test/images/{item['filename']}" for item in test_data]
-    logging.info(f"Running detection on {len(test_image_paths)} test images...")
-    start_time = time.time()
-    detections = detector.detect_plates(model, test_image_paths, imgsz=640, iou=0.5, conf=0.5)
-    detection_time = time.time() - start_time
-    logging.info(f"Detection on test set completed in {detection_time:.2f} seconds.")
-    # 4. OCR na wykrytych tablicach i obliczanie metryk
-    correct_count = 0
-    total_count = 0
-    iou_values = []
-    # Przygotuj plik CSV na wyniki
-    import csv
-    results_file = "results.csv"
-    with open(results_file, mode='w', newline='', encoding='utf-8') as csvfile:
-        writer = csv.writer(csvfile)
-        writer.writerow(["filename", "ground_truth", "predicted_text", "IoU", "correct"])
-        # Iteruj po wszystkich obrazach testowych i odpowiadających detekcjach
-        for item, det in zip(test_data, detections):
-            filename = item['filename']
-            true_text = item['plate_text'] or ""
-            true_text = true_text.strip().upper()
-            true_bbox = tuple(map(int, item['bbox']))
-            pred_text = ""
-            pred_bbox = None
-            if det['boxes']:
-                # Jeśli wykryto conajmniej jedną tablicę, weź tę z najwyższym score (pierwsza na liście)
-                pred_bbox = det['boxes'][0]
-                pred_text = ocr.recognize_plate_text(f"dataset/test/images/{filename}", pred_bbox)
+    logging.info("Loading and preparing dataset...")
+    data = dataset.prepare_dataset()
+    train_data, test_data = data['train'], data['test']
+    logging.info(f"Train images: {len(train_data)}, Test images: {len(test_data)}")
+
+    # 2. Trenowanie lub wczytanie modelu
+    if args.eval_only:
+        logging.info("Eval-only: loading existing weights...")
+        model = detector.load_detector(weights_path=args.weights)
+    else:
+        logging.info("Starting YOLOv8 training...")
+        weights = detector.train_detector()
+        logging.info(f"Training done, weights saved to {weights}")
+        model = detector.load_detector(weights_path=weights)
+
+    # 3. Detekcja + OCR na zbiorze testowym
+    test_paths = [os.path.join("data", "test", "images", item['filename']) for item in test_data]
+    logging.info(f"Running detection on {len(test_paths)} test images...")
+    start = time.time()
+    detections = detector.detect_plates(model, test_paths)
+    detection_time = time.time() - start
+    logging.info(f"Detection+OCR time: {detection_time:.2f}s for {len(test_paths)} images")
+
+    # 4. OCR + metryki
+    total, correct, sum_iou, matched = 0, 0, 0.0, 0
+    results = []
+    for item in test_data:
+        fname = item['filename']
+        gt_boxes = item['bboxes']
+        gt_texts = item['texts']
+        preds = detections.get(fname, [])
+        used = set()
+        for i, gt_box in enumerate(gt_boxes):
+            total += 1
+            best_iou, best_j = 0.0, None
+            for j, pred in enumerate(preds):
+                if j in used: continue
+                iou = utils.calculate_iou(gt_box, pred['bbox'])
+                if iou > best_iou:
+                    best_iou, best_j = iou, j
+            if best_j is not None:
+                used.add(best_j)
+                matched += 1
+                pred_box = preds[best_j]['bbox']
+                text = ocr.recognize_plate(os.path.join("data","test","images", fname), pred_box)
+                correct_flag = int(text.replace(" ", "").upper() == gt_texts[i].replace(" ", "").upper())
+                correct += correct_flag
+                sum_iou += best_iou
+                results.append([fname, gt_texts[i], text, f"{best_iou:.2f}", str(correct_flag)])
             else:
-                # Jeśli brak detekcji - pozostaw pred_text pusty, pred_bbox = None
-                pred_bbox = None
-            # Oblicz IoU między pred_bbox a true_bbox (jeśli detection istnieje)
-            iou = 0.0
-            if pred_bbox is not None:
-                iou = utils.calculate_iou(pred_bbox, true_bbox)
-            iou_values.append(iou)
-            # Sprawdź poprawność OCR (pełny tekst musi się zgadzać)
-            is_correct = (pred_text == true_text and pred_text != "")
-            if is_correct:
-                correct_count += 1
-            total_count += 1
-            # Zapisz do pliku CSV wynik dla tej próbki
-            writer.writerow([filename, true_text, pred_text, f"{iou:.3f}", int(is_correct)])
-            logging.debug(f"Processed {filename}: GT='{true_text}', Pred='{pred_text}', IoU={iou:.2f}, Correct={is_correct}")
-    logging.info(f"Saved detailed results to {results_file}")
-    # 5. Obliczanie zbiorczych metryk
-    accuracy = (correct_count / total_count) * 100.0 if total_count > 0 else 0.0
-    avg_iou = sum(iou_values) / len(iou_values) if iou_values else 0.0
-    # Przeskaluj zmierzony czas detekcji+OCR do 100 obrazów
-    num_images = len(test_data)
-    time_per_image = detection_time / num_images if num_images > 0 else 0
-    time_100 = time_per_image * 100.0
-    # Wylicz ocenę końcową za pomocą zdefiniowanej funkcji
-    final_grade = utils.calculate_final_grade(accuracy, time_100)
-    # 6. Wyświetlenie podsumowania
-    logging.info(f"OCR Accuracy: {accuracy:.2f}%")
-    logging.info(f"Average IoU (detection): {avg_iou:.3f}")
-    logging.info(f"Total processing time for {num_images} test images: {detection_time:.2f} s")
-    logging.info(f"Estimated time for 100 images: {time_100:.2f} s")
-    logging.info(f"Final Grade (scale 2.0-5.0): {final_grade:.1f}")
-    print("========== ALPR System Evaluation ==========")
-    print(f"Test images: {num_images}")
-    print(f"OCR Accuracy: {accuracy:.2f}%")
-    print(f"Average IoU: {avg_iou:.3f}")
-    print(f"Processing time for {num_images} images: {detection_time:.2f} s")
-    print(f"Estimated time for 100 images: {time_100:.2f} s")
-    print(f"Final Grade: {final_grade:.1f}")
-    print("=============================================")
+                results.append([fname, gt_texts[i], "", "0.00", "0"])
+
+    # 5. Podsumowanie i zapis CSV
+    acc = utils.calculate_accuracy(correct, total)
+    avg_iou = sum_iou / matched if matched else 0.0
+    time100 = (detection_time / len(test_paths)) * 100.0 if test_paths else 0.0
+    grade = utils.calculate_final_grade(acc, time100)
+
+    # Zapis szczegółowego pliku
+    with open("results.csv", "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f); w.writerow(["filename","gt","pred","IoU","correct"])
+        w.writerows(results)
+
+    print("=== EVALUATION SUMMARY ===")
+    print(f"Total plates: {total}")
+    print(f"Correct OCR: {correct} ({acc:.2f}%)")
+    print(f"Average IoU: {avg_iou:.2f}")
+    print(f"Time for {len(test_paths)} images: {detection_time:.2f}s, est. {time100:.2f}s/100")
+    print(f"Final grade: {grade:.1f}")
 
 if __name__ == "__main__":
     main()
