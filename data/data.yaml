@@ -1,6 +1,5 @@
-# YOLOv8 data config (plates)
-path: C:\Users\Wassup_Home\PycharmProjects\zaaw_progr\data
-train: images/train
-val:   images/val
+path: data
+train: train\images
+val: test\images
 nc: 1
 names: ['plate']
