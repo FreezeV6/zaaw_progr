@@ -1,29 +1,11 @@
-# use NVIDIA NGC for onnx_graphsurgeon
---extra-index-url https://pypi.ngc.nvidia.com
-
-# Core numerical & ML
-numpy==1.26.4
-torch==2.7.0                           # CPU-only build
-ultralytics==8.3.140                   # YOLOv8
-opencv-python==4.10.0.84               # OpenCV
-easyocr==1.7.2                         # OCR wrapper
-scikit-learn==1.6.1                    # train_test_split, itp.
-
-# ONNX ecosystem
-onnx==1.17.0
-onnxruntime==1.18.1
-onnx-simplifier==0.4.33
-onnx_graphsurgeon==0.3.26              # NVIDIA NGC
-
-# ONNX→TFLite converter
-onnx2tf==1.26.3                        # ostatnia wersja bez ai_edge_litert
-
-# TF runtimes
-tensorflow==2.19.0    ; sys_platform == "win32"
-tf-keras==2.19.0      ; sys_platform == "win32"
-tflite-runtime==2.14.0; sys_platform != "win32"
-
-# Optional testing
-pytest==8.3.5
-
-pytesseract~=0.3.13
+opencv-python
+numpy
+pandas
+ultralytics
+pytesseract
+torch
+Pillow
+imutils
+# Raspberry Pi only:
+# RPi.GPIO
+# picamera

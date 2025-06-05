@@ -1,6 +1,0 @@
-path: dataset
-train: images/train
-val: images/test
-nc: 1
-names:
-  - plate
