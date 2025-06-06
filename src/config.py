@@ -8,7 +8,7 @@ YOLO_LABELS_DIR = os.path.join(DATA_DIR, 'labels')
 CSV_PATH = os.path.join(DATA_DIR, 'plates.csv')
 ANNOT_PATH = os.path.join(DATA_DIR, 'annotations.xml')
 
-TESSERACT_CMD = r"C:\Program Files\Tesseract-OCR\tesseract.exe"  # zmień wg systemu
+TESSERACT_CMD = os.getenv("TESSERACT_CMD", "tesseract")  # zmień wg systemu
 MODEL_PATH = os.path.join(BASE_DIR, "runs", "detect", "train2", "weights", "best.pt")  # YOLO po treningu
 
 TRUSTED_PLATES = ["XYZ1234", "ABC5678"]  # Przykład

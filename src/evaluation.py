@@ -3,28 +3,57 @@ from utils import iou, crop_bbox
 from ocr import recognize_plate
 import cv2
 import os
+from concurrent.futures import ThreadPoolExecutor
+import threading
 
-def evaluate(detector, data, images_dir):
+def evaluate(
+    detector,
+    data,
+    images_dir,
+    num_threads: int = 4,
+    preprocess_params: dict | None = None,
+    crop_offsets: dict | None = None,
+    conf: float | None = None,
+    tesseract_config: str | None = None,
+):
     total, correct, total_iou = 0, 0, []
     start = time.time()
-    for row in data[:100]:
+
+    if crop_offsets is None:
+        crop_offsets = {"x1": 15, "x2": 0, "y1": 0, "y2": 0}
+
+    lock = threading.Lock()
+
+    def process(row):
         fname, xtl, ytl, xbr, ybr, gt_plate = row
         img_path = f"{images_dir}/{fname}"
         img = cv2.imread(img_path)
         if img is None:
-            continue
-        dets = detector.detect(img)
+            return None
+        with lock:
+            dets = detector.detect(img, conf=conf)
         if len(dets) == 0:
-            continue
+            return None
         best = dets[0][:4]
-        total_iou.append(iou([float(xtl), float(ytl), float(xbr), float(ybr)], best))
-        plate_img = crop_bbox(img, best)
+        val_iou = iou([float(xtl), float(ytl), float(xbr), float(ybr)], best)
+        plate_img = crop_bbox(img, best, offsets=crop_offsets)
         cv2.imwrite(os.path.join("test", f'plate_{fname}'), plate_img)
-        pred = recognize_plate(plate_img, fname)
+        pred = recognize_plate(plate_img, fname, preprocess_params, tesseract_config)
         print(f'{fname}, {gt_plate}, {pred}')
-        if pred == gt_plate:
+        return (pred == gt_plate, val_iou)
+
+    with ThreadPoolExecutor(max_workers=num_threads) as ex:
+        results = list(ex.map(process, data[:100]))
+
+    for res in results:
+        if res is None:
+            continue
+        pred_correct, val_iou = res
+        if pred_correct:
             correct += 1
+        total_iou.append(val_iou)
         total += 1
+
     elapsed = time.time() - start
     accuracy = correct / total if total else 0
     avg_iou = sum(total_iou) / len(total_iou) if total_iou else 0

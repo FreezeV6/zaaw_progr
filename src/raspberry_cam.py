@@ -34,7 +34,7 @@ def camera_loop():
                 continue
             best = dets[0][:4]
             plate_img = crop_bbox(frame, best)
-            plate_txt = recognize_plate(plate_img)
+            plate_txt = recognize_plate(plate_img, 'cam')
             print(f"Odczytano: {plate_txt}")
             if plate_txt in TRUSTED_PLATES:
                 print("Tablica zaufana, otwieram szlaban!")
