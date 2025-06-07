@@ -6,52 +6,12 @@ import imutils
 import re
 import numpy as np
 
-_PATTERNS = [
-    # 1) Standard plates with two-letter prefixes
-    re.compile(r"^[A-Z]{2}\d{5}$"),
-    re.compile(r"^[A-Z]{2}\d{4}[A-Z]$"),
-    re.compile(r"^[A-Z]{2}\d{3}[A-Z]{2}$"),
-    re.compile(r"^[A-Z]{2}\d[A-Z]\d{3}$"),
-    re.compile(r"^[A-Z]{2}\d[A-Z]{2}\d{2}$"),
-    # 2) Standard plates with three-letter prefixes
-    re.compile(r"^[A-Z]{3}\d{5}$"),
-    re.compile(r"^[A-Z]{3}\d{4}[A-Z]$"),
-    re.compile(r"^[A-Z]{3}\d{3}[A-Z]{2}$"),
-    re.compile(r"^[A-Z]{3}[A-Z]\d{3}$"),
-    # 3) Motorcycle / moped plates (5–6 characters)
-    re.compile(r"^[A-Z]{2}\d{2}[A-Z]\d?$"),
-    re.compile(r"^[A-Z]{2}\d{3}$"),
-    re.compile(r"^[A-Z]{3}\d{2}$"),
-    re.compile(r"^[A-Z]{3}\d[A-Z]$"),
-    # 4) Historic yellow plates (5 characters)
-    re.compile(r"^[A-Z]{2}\d{2}[A-Z]$"),
-    re.compile(r"^[A-Z]{2}\d{3}$"),
-    re.compile(r"^[A-Z]{3}\d{2}$"),
-    re.compile(r"^[A-Z]{3}[A-Z]\d$"),
-    # 5) Custom plates (5–7 characters, letter-digit prefix)
-    re.compile(r"^[A-Z]\d[A-Z]{3,5}$"),
-    re.compile(r"^[A-Z]\d[A-Z]{1,3}\d{1,2}$"),
-    # 6) Diplomatic plates (W + 6 digits)
-    re.compile(r"^W\d{6}$"),
-    # 7) Military plates
-    re.compile(r"^U[A-Z]\d{5}$"),
-    re.compile(r"^U[A-Z]\d{4}T$"),
-    # 8) Professional plates (1 letter + 4 digits + P + 2 chars)
-    re.compile(r"^[A-Z]\d{4}P(?:\d{2}|\d[A-Z])$"),
-    # 9) Reduced size ("USA") plates
-    re.compile(r"^[A-Z]\d{3}$"),
-    re.compile(r"^[A-Z]\d{2}[A-Z]$"),
-    re.compile(r"^[A-Z]\d[A-Z]\d$"),
-    re.compile(r"^[A-Z][A-Z]\d{2}$"),
-    re.compile(r"^[A-Z]{3}\d$"),
-    # 10) Service vehicles (H + service letter + region letter + 3 digits)
-    re.compile(r"^H[ABCKMPW]\w\d{3}$"),
-]
 
+PLATE_REGEX = re.compile(r"^[A-Z0-9]{4,8}$")
 
 def validate_plate(text: str) -> bool:
-    """Return True if ``text`` matches any known license plate format."""
-    return any(p.fullmatch(text) for p in _PATTERNS)
+    """Return True if text looks like a license plate."""
+    return bool(PLATE_REGEX.fullmatch(text))
 
 pytesseract.pytesseract.tesseract_cmd = TESSERACT_CMD
 
