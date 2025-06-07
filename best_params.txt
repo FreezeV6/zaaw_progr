@@ -38,3 +38,35 @@ Params: {
     "conf": 0.583906527654457,
     "tesseract": "--oem 3 --psm 8 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
 }
+-------------------------------------------------------------------------------------------------------
+Best accuracy: 0.6256410256410256
+Params: {
+    "preprocess": {
+        "width": np.int64(768),
+        "blur_method": np.str_("gaussian"),
+        "gaussian_kernel": (3, 3),
+        "bilateral_d": np.int64(5),
+        "sigma_color": 16.438717857645447,
+        "sigma_space": 75.0,
+        "gamma": 2.5,
+        "clahe_clip": 1.039094473075576,
+        "clahe_tile_grid": (4, 4),
+        "block_size": np.int64(29),
+        "adaptive_block": np.int64(29),
+        "adaptive_C": np.int64(0),
+        "thresh_method": np.str_("otsu"),
+        "inv": np.False_,
+        "deskew_apply": np.False_,
+        "deskew_border": np.int64(1),
+        "kernel_size": np.int64(9),
+        "open_iter": np.int64(1),
+        "close_iter": np.int64(0),
+        "dilate_iter": np.int64(0),
+    },
+    "crop_offsets": {"x1": 34, "x2": 10, "y1": 0, "y2": 0},
+    "shrink_ratio": 0.0,
+    "conf": 0.4481218981217491,
+    "nms": 0.4047360392815532,
+    "ocr_conf_min": 0.1921366962440251,
+    "tesseract": "--oem 3 --psm 8 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+}

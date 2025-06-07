@@ -1,6 +1,6 @@
 import pytesseract
 import cv2
-from config import TESSERACT_CMD
+from config import TESSERACT_CMD, REV_CHARS_MAP, CHARS_MAP
 import os
 import imutils
 import re
@@ -113,6 +113,56 @@ def preprocess_plate(
         thresh = cv2.dilate(thresh, kernel, iterations=dilate_iter)
     return thresh
 
+def replace_chars(text: str, split: int | None, rev: bool = False) -> str:
+    c_map = CHARS_MAP if not rev else REV_CHARS_MAP
+    if split is None:
+        for c in text:
+            if c not in c_map.keys():
+                continue
+            text = text.replace(c, c_map[c])
+        return text
+    for i, c in enumerate(text[:split]):
+        if c in c_map.keys():
+            text = "".join([text[:split].replace(c, CHARS_MAP[c]), text[split:]])
+    return text
+
+def process_text(text: str) -> str:
+    if len(text) < 4:
+        return ""
+    if text[0] in "AIM0123456789":
+        text = text[1:]
+    if text[0:3] != "BI" and text[0] == "B":
+        text = text[1:]
+    if text[0] in CHARS_MAP.keys():
+        text = "".join([CHARS_MAP[text[0]], text[1:]])
+    if text[:2].isalnum() and not text[2].isalnum() and len(text) > 7:
+        text = text[:8]
+    elif text[:3].isalnum() and len(text) > 8:
+        text = text[:8]
+    if len(text) > 1 and text[0] in "AIM0123456789":
+        text = text[1:]
+    if len(text) > 8:
+        text = text[:8]
+    if len(text) > 7:
+        replace_chars(text, 3)
+    elif len(text) > 6:
+        replace_chars(text, 2)
+    if len(text) > 2 and text[:2].isalnum() and not text[2].isalnum():
+        text = text[:7]
+    if len(text) == 7 and text[0].isalnum() and not text[1].isalnum():
+        text = "".join([text[0], CHARS_MAP[text[1]], text[2:]])
+    if len(text) > 7 and text[:3].isalnum() and not text[3].isalnum():
+        text = text[:8]
+    if len(text) == 8:
+        text = replace_chars(text, 3)
+    if len(text) == 7:
+        text = replace_chars(text, 2)
+    if text[:2].isalnum():
+        text
+    if text[:2].isalnum():
+        text
+    return text
+
 def recognize_plate(
     plate_img,
     fname,
@@ -135,6 +185,5 @@ def recognize_plate(
     avg_conf = (sum(confs) / len(confs) / 100) if confs else 0.0
     cv2.imwrite(os.path.join("test", f"plate_prep_{fname}.jpg"), img_prep)
     text = re.sub(r"[^A-Z0-9]", "", text.upper())
-    if avg_conf < ocr_conf_min or not validate_plate(text):
-        return ""
+    text = process_text(text)
     return text

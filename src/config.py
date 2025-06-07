@@ -16,37 +16,42 @@ TRUSTED_PLATES = ["XYZ1234", "ABC5678"]  # Przykład
 SERVO_PIN = 17  # GPIO pin Raspberry Pi
 CAMERA_INDEX = 0
 
+CHARS_MAP = {"1": "I", "2": "Z", "3": "C", "5": "S", "0": "O", "7": "Z"}
+REV_CHARS_MAP = {"I": "1", "Z": "2", "C": "3", "S": "5", "O": "0"}
+
 PREPROCESS_PARAMS = {
-    "width": 500,
-    "blur_method": "bilateral",
-    "gaussian_kernel": (5, 5),
-    "bilateral_d": 9,
-    "sigma_color": 41,
-    "sigma_space": 21,
-    "gamma": 1.0,
-    "clahe_clip": 2.0,
-    "clahe_tile_grid": (8, 8),
-    "block_size": 25,
-    "adaptive_block": 25,
+    "width": 768,
+    "blur_method": "gaussian",
+    "gaussian_kernel": (3, 3),
+    "bilateral_d": 5,
+    "sigma_color": 16.438717857645447,
+    "sigma_space": 75.0,
+    "gamma": 2.5,
+    "clahe_clip": 1.039094473075576,
+    "clahe_tile_grid": (4, 4),
+    "block_size": 29,
+    "adaptive_block": 29,
     "adaptive_C": 0,
     "c": 15,
-    "thresh_method": "gaussian",
+    "thresh_method": "otsu",
     "inv": False,
-    "deskew_apply": True,
-    "deskew_border": cv2.BORDER_REPLICATE,
-    "kernel_size": 3,
-    "open_iter": 0,
+    "deskew_apply": False,
+    "deskew_border": 1,
+    "kernel_size": 9,
+    "open_iter":1,
     "close_iter": 0,
     "dilate_iter": 0,
 }
 
 # Przycinanie wykrytej tablicy przed OCR
 CROP_OFFSETS = {"x1": 34, "x2": 10, "y1": 0, "y2": 0}
-SHRINK_RATIO = 0.05
+SHRINK_RATIO = 0.0
 
 # Minimalne prawdopodobieństwo wykrycia tablicy
-YOLO_CONFIDENCE = 0.4
-YOLO_NMS_IOU = 0.45
+YOLO_CONFIDENCE = 0.4481218981217491
+YOLO_NMS_IOU = 0.4047360392815532
+
+OCR_CONF_MIN = 0.1921366962440251
 
 # Konfiguracja tesseracta używana w OCR
 TESSERACT_CONFIG = (

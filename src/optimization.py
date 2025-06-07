@@ -65,7 +65,6 @@ def find_best_parameters(
         Real(*OPTIMIZER_SPACE["gamma"], name="gamma"),
         Categorical(OPTIMIZER_SPACE["blur_method"], name="blur_method"),
         Categorical([_encode_tuple(t) for t in OPTIMIZER_SPACE["gaussian_kernel"]], name="gaussian_kernel"),
-        Categorical(OPTIMIZER_SPACE["gaussian_kernel"], name="gaussian_kernel"),
         Categorical(OPTIMIZER_SPACE["bilateral_d"], name="bilateral_d"),
         Real(*OPTIMIZER_SPACE["sigma_color"], name="sigma_color"),
         Real(*OPTIMIZER_SPACE["sigma_space"], name="sigma_space"),

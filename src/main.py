@@ -11,6 +11,7 @@ from config import (
     YOLO_CONFIDENCE,
     YOLO_NMS_IOU,
     TESSERACT_CONFIG,
+    OCR_CONF_MIN,
 )
 
 def load_dataset(csv_path):
@@ -35,6 +36,7 @@ if __name__ == "__main__":
         nms_iou=YOLO_NMS_IOU,
         shrink_ratio=SHRINK_RATIO,
         tesseract_config=TESSERACT_CONFIG,
+        ocr_conf_min=OCR_CONF_MIN
     )
     print(f"Dokładność: {accuracy*100:.2f}%")
     print(f"Czas przetwarzania: {elapsed:.2f} s")
