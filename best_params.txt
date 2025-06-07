@@ -70,3 +70,5 @@ Params: {
     "ocr_conf_min": 0.1921366962440251,
     "tesseract": "--oem 3 --psm 8 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
 }
+
+SEED = 605875 -- 78.00 acc

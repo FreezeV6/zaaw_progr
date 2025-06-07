@@ -50,7 +50,7 @@ SHRINK_RATIO = 0.0
 # Minimalne prawdopodobieństwo wykrycia tablicy
 YOLO_CONFIDENCE = 0.4481218981217491
 YOLO_NMS_IOU = 0.4047360392815532
-
+SEED = 114
 OCR_CONF_MIN = 0.1921366962440251
 
 # Konfiguracja tesseracta używana w OCR
