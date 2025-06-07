@@ -43,9 +43,36 @@ PREPROCESS_PARAMS = {
     "dilate_iter": 0,
 }
 
+LIVE_PREPROCESS_PARAMS = {
+    "width": 768,
+    "blur_method": "gaussian",
+    "gaussian_kernel": (3, 3),
+    "bilateral_d": 5,
+    "sigma_color": 16.438717857645447,
+    "sigma_space": 75.0,
+    "gamma": 1.2,
+    "clahe_clip": 1.039094473075576,
+    "clahe_tile_grid": (4, 4),
+    "block_size": 29,
+    "adaptive_block": 29,
+    "adaptive_C": 0,
+    "c": 15,
+    "thresh_method": "otsu",
+    "inv": False,
+    "deskew_apply": False,
+    "deskew_border": 1,
+    "kernel_size": 9,
+    "open_iter":1,
+    "close_iter": 0,
+    "dilate_iter": 0,
+}
+
 # Przycinanie wykrytej tablicy przed OCR
 CROP_OFFSETS = {"x1": 34, "x2": 10, "y1": 0, "y2": 0}
 SHRINK_RATIO = 0.0
+
+LIVE_CROP_OFFSETS = {"x1": -10, "x2": -10, "y1": -10, "y2": -10}
+LIVE_SHRINK_RATIO = 0.0
 
 # Minimalne prawdopodobieństwo wykrycia tablicy
 YOLO_CONFIDENCE = 0.4481218981217491

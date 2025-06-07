@@ -169,6 +169,7 @@ def recognize_plate(
     preprocess_params: dict | None = None,
     tesseract_config: str | None = None,
     ocr_conf_min: float = 0.0,
+    show_prep_img: bool = False
 ):
     if preprocess_params is None:
         preprocess_params = {}
@@ -186,4 +187,4 @@ def recognize_plate(
     cv2.imwrite(os.path.join("test", f"plate_prep_{fname}.jpg"), img_prep)
     text = re.sub(r"[^A-Z0-9]", "", text.upper())
     text = process_text(text)
-    return text
+    return text, img_prep if show_prep_img else None
