@@ -40,10 +40,11 @@ def find_best_parameters(
 
     # definiujemy przestrzeń przeszukiwania na podstawie config
     dims = [
-        Categorical(OPTIMIZER_SPACE["width"], name="width"),
+        Integer(OPTIMIZER_SPACE["width"], name="width"),
         Categorical(OPTIMIZER_SPACE["bilateral_d"], name="bilateral_d"),
         Categorical(OPTIMIZER_SPACE["block_size"], name="block_size"),
-        Categorical(OPTIMIZER_SPACE["c"], name="c"),
+        Integer(OPTIMIZER_SPACE["c"], name="c"),
+        Categorical(OPTIMIZER_SPACE["inv"], name="inv"),
         Real(*OPTIMIZER_SPACE["conf"], name="conf"),
         Integer(*OPTIMIZER_SPACE["x1"], name="x1"),
         Integer(*OPTIMIZER_SPACE["x2"], name="x2"),
@@ -63,6 +64,7 @@ def find_best_parameters(
             "block_size":    params["block_size"],
             "c":             params["c"],
             "thresh_method": params["thresh_method"],
+            "inv":           params["inv"],
             "deskew_apply":  params["deskew_apply"],
         }
         crop_off = {
@@ -109,6 +111,7 @@ def find_best_parameters(
             "block_size": best_vals["block_size"],
             "c": best_vals["c"],
             "thresh_method": best_vals["thresh_method"],
+            "inv": best_vals["inv"],
             "deskew_apply": best_vals["deskew_apply"],
         },
         "crop_offsets": {

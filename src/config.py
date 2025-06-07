@@ -21,6 +21,7 @@ PREPROCESS_PARAMS = {
     "block_size": 25,
     "c": 10,
     "thresh_method": "otsu",
+    "inv": True,
     "deskew_apply": False,
 }
 
@@ -28,7 +29,7 @@ PREPROCESS_PARAMS = {
 CROP_OFFSETS = {"x1": 35, "x2": 12, "y1": 1, "y2": 0}
 
 # Minimalne prawdopodobieństwo wykrycia tablicy
-CONFIDENCE_THRESHOLD = 0.23
+CONFIDENCE_THRESHOLD = 0.23377228126973296
 
 # Konfiguracja tesseracta używana w OCR
 TESSERACT_CONFIG = (
@@ -44,17 +45,18 @@ OPTIMIZER_SETTINGS = {
 }
 
 OPTIMIZER_SPACE = {
-    "width": [500],
+    "width": (400,600),
     "bilateral_d": [9, 11],
-    "block_size": [17, 19, 21, 23, 25],
-    "c": [5, 10, 15, 20],
-    "conf": (0.10, 0.35),
+    "block_size": (3, 51, 2),
+    "c": (0, 50),
+    "conf": (0, 0.7),
     "x1": (0, 40),
     "x2": (0, 40),
     "y1": (0, 40),
     "y2": (0, 40),
     "thresh_method": ["gaussian", "mean", "otsu"],
+    "inv": [False, True],
     "deskew_apply": [False],
-    "psm": [6, 7, 8],
+    "psm": [8],
     "oem": [3],
 }

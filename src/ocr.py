@@ -38,6 +38,7 @@ def preprocess_plate(
     block_size: int = 25,
     c: int = 15,
     thresh_method: str = "gaussian",
+    inv: bool = True,
     deskew_apply: bool = True,
     deskew_border: int = cv2.BORDER_REPLICATE,
 ):
@@ -51,7 +52,7 @@ def preprocess_plate(
             gray,
             255,
             cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-            cv2.THRESH_BINARY_INV,
+            cv2.THRESH_BINARY_INV if inv else None,
             block_size,
             c,
         )
@@ -60,19 +61,19 @@ def preprocess_plate(
             gray,
             255,
             cv2.ADAPTIVE_THRESH_MEAN_C,
-            cv2.THRESH_BINARY_INV,
+            cv2.THRESH_BINARY_INV if inv else None,
             block_size,
             c,
         )
     else:  # otsu
-        _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+        _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV if inv else 1 + cv2.THRESH_OTSU)
     return thresh
 
 def recognize_plate(plate_img, fname, preprocess_params: dict | None = None, tesseract_config: str | None = None):
     if preprocess_params is None:
         preprocess_params = {}
     if tesseract_config is None:
-        tesseract_config = "--oem 3 --psm 7 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        tesseract_config = "--oem 3 --psm 8 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
     img_prep = preprocess_plate(plate_img, **preprocess_params)
     text = pytesseract.image_to_string(
         img_prep,

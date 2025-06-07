@@ -6,6 +6,7 @@ pytesseract
 torch
 Pillow
 imutils
+scikit-optimize
 # Raspberry Pi only:
 # RPi.GPIO
 # picamera
