@@ -13,6 +13,7 @@
 3. Podziel dane na train/val/test (opcjonalnie).
 4. Wytrenuj model YOLO.
 5. Skonfiguruj ścieżki w `config.py`.
+6. (Opcjonalnie) Dostosuj parametry OCR lub uruchom optymalizację.
 
 ## Uruchomienie
 1. Umieść zdjęcia i adnotacje w folderze `dataset/`
@@ -24,8 +25,14 @@
 ```bash
 python main.py
 ```
+## Optymalizacja parametrów
+```bash
+python -m src.optimization
+```
+Najlepsze wartości zostaną wypisane w konsoli. Zakresy oraz ustawienia
+optymalizatora znajdują się w pliku `config.py`.
 
-## Autor
+### Autor
 FreezeV6
 
 
