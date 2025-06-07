@@ -31,8 +31,8 @@ PREPROCESS_PARAMS = {
     "adaptive_C": 0,
     "c": 15,
     "thresh_method": "gaussian",
-    "inv": True,
-    "deskew_apply": False,
+    "inv": False,
+    "deskew_apply": True,
     "deskew_border": cv2.BORDER_REPLICATE,
     "kernel_size": 3,
     "open_iter": 0,
@@ -92,12 +92,12 @@ OPTIMIZER_SPACE = {
 
     # --- THRESHOLDING ---
     "thresh_method": ["otsu", "gaussian", "mean", "adaptive"],
-    "adaptive_block": [i for i in range(3, 52, 2)],
+    "adaptive_block": [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41, 43, 45, 47, 49, 51],
     "adaptive_C": (-10, 10),
     "inv": [False, True],
 
     # --- MORPHOLOGY ---
-    "kernel_size": [3, 5, 7, 9 , 11],
+    "kernel_size": [3, 5, 7, 9, 11],
     "open_iter": [0, 1, 2, 3],
     "close_iter": [0, 1, 2, 3],
     "dilate_iter": [0, 1, 2, 3],
