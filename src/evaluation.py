@@ -14,7 +14,10 @@ def evaluate(
     preprocess_params: dict | None = None,
     crop_offsets: dict | None = None,
     conf: float | None = None,
+    nms_iou: float | None = None,
+    shrink_ratio: float = 0.0,
     tesseract_config: str | None = None,
+    ocr_conf_min: float = 0.0,
 ):
     total, correct, total_iou = 0, 0, []
     start = time.time()
@@ -31,19 +34,25 @@ def evaluate(
         if img is None:
             return None
         with lock:
-            dets = detector.detect(img, conf=conf)
+            dets = detector.detect(img, conf=conf, iou=nms_iou)
         if len(dets) == 0:
             return None
         best = dets[0][:4]
         val_iou = iou([float(xtl), float(ytl), float(xbr), float(ybr)], best)
-        plate_img = crop_bbox(img, best, offsets=crop_offsets)
+        plate_img = crop_bbox(img, best, offsets=crop_offsets, shrink_ratio=shrink_ratio)
         cv2.imwrite(os.path.join("test", f'plate_{fname}'), plate_img)
-        pred = recognize_plate(plate_img, fname, preprocess_params, tesseract_config)
+        pred = recognize_plate(
+            plate_img,
+            fname,
+            preprocess_params,
+            tesseract_config,
+            ocr_conf_min,
+        )
         print(f'{fname}, {gt_plate}, {pred}')
         return (pred == gt_plate, val_iou)
 
     with ThreadPoolExecutor(max_workers=num_threads) as ex:
-        results = list(ex.map(process, data[:100]))
+        results = list(ex.map(process, data))
 
     for res in results:
         if res is None:

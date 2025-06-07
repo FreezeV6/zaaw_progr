@@ -1,4 +1,5 @@
 import os
+import cv2
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 DATA_DIR = os.path.join(BASE_DIR, 'data')
@@ -16,20 +17,36 @@ SERVO_PIN = 17  # GPIO pin Raspberry Pi
 CAMERA_INDEX = 0
 
 PREPROCESS_PARAMS = {
-    "width": 421,
+    "width": 500,
+    "blur_method": "bilateral",
+    "gaussian_kernel": (5, 5),
     "bilateral_d": 9,
-    "block_size": 37,
-    "c": 38,
-    "thresh_method": "mean",
-    "inv": False,
+    "sigma_color": 41,
+    "sigma_space": 21,
+    "gamma": 1.0,
+    "clahe_clip": 2.0,
+    "clahe_tile_grid": (8, 8),
+    "block_size": 25,
+    "adaptive_block": 25,
+    "adaptive_C": 0,
+    "c": 15,
+    "thresh_method": "gaussian",
+    "inv": True,
     "deskew_apply": False,
+    "deskew_border": cv2.BORDER_REPLICATE,
+    "kernel_size": 3,
+    "open_iter": 0,
+    "close_iter": 0,
+    "dilate_iter": 0,
 }
 
 # Przycinanie wykrytej tablicy przed OCR
 CROP_OFFSETS = {"x1": 34, "x2": 10, "y1": 0, "y2": 0}
+SHRINK_RATIO = 0.05
 
 # Minimalne prawdopodobieństwo wykrycia tablicy
-CONFIDENCE_THRESHOLD = 0.583906527654457
+YOLO_CONFIDENCE = 0.4
+YOLO_NMS_IOU = 0.45
 
 # Konfiguracja tesseracta używana w OCR
 TESSERACT_CONFIG = (
@@ -45,18 +62,50 @@ OPTIMIZER_SETTINGS = {
 }
 
 OPTIMIZER_SPACE = {
-    "width": (400,600),
-    "bilateral_d": [9, 11],
-    "block_size": [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41, 43, 45, 47, 49, 51],
-    "c": (0, 50),
-    "conf": (0, 0.7),
-    "x1": (0, 40),
-    "x2": (0, 40),
-    "y1": (0, 40),
-    "y2": (0, 40),
-    "thresh_method": ["gaussian", "mean", "otsu"],
+    # --- DETECTION ---
+    "yolo_conf": (0.1, 0.5),
+    "yolo_nms": (0.3, 0.6),
+
+    # --- CROPPING/SHRINK ---
+    "shrink_ratio": (0.0, 0.2),
+
+    # --- DESKEW ---
+    "deskew_apply": [False, True],
+    "deskew_border": [cv2.BORDER_CONSTANT, cv2.BORDER_REPLICATE],
+
+    # --- RESIZE ---
+    "width": (300, 800),
+
+    # --- CLAHE ---
+    "clahe_clip": (1.0, 10.0),
+    "clahe_tile_grid": [(4, 4), (8, 8), (16, 16), (32, 32)],
+
+    # --- GAMMA ---
+    "gamma": (0.5, 2.5),
+
+    # --- BLUR ---
+    "blur_method": ["gaussian", "bilateral"],
+    "gaussian_kernel": [(3, 3), (5, 5), (7, 7)],
+    "bilateral_d": [5, 7, 9, 11, 13],
+    "sigma_color": (15, 75),
+    "sigma_space": (15, 75),
+
+    # --- THRESHOLDING ---
+    "thresh_method": ["otsu", "gaussian", "mean", "adaptive"],
+    "adaptive_block": [i for i in range(3, 52, 2)],
+    "adaptive_C": (-10, 10),
     "inv": [False, True],
-    "deskew_apply": [False],
-    "psm": [8],
-    "oem": [3],
+
+    # --- MORPHOLOGY ---
+    "kernel_size": [3, 5, 7, 9 , 11],
+    "open_iter": [0, 1, 2, 3],
+    "close_iter": [0, 1, 2, 3],
+    "dilate_iter": [0, 1, 2, 3],
+
+    # --- TESSERACT CONFIG ---
+    "psm": [6, 7, 8],
+    "oem": [0, 1, 2, 3],
+
+    # --- OCR CONFIDENCE FILTER ---
+    "ocr_conf_min": (0.0, 0.7),
 }

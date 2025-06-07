@@ -1,18 +1,28 @@
 import numpy as np
 
 
-def crop_bbox(image, bbox, offsets: dict | None = None):
-    """Crop bounding box with optional offsets for each side.
+def crop_bbox(image, bbox, offsets: dict | None = None, shrink_ratio: float = 0.0):
+    """Crop bounding box with optional offsets and shrink ratio.
 
     Offsets dictionary can contain keys ``x1`` (left), ``x2`` (right),
     ``y1`` (top) and ``y2`` (bottom). Positive values shrink the crop
-    from a given side, negative values extend it.
+    from a given side, negative values extend it. ``shrink_ratio`` is
+    applied before offsets and removes given fraction of width/height
+    from each side.
     """
     if offsets is None:
         offsets = {"x1": 15, "x2": 0, "y1": 0, "y2": 0}
 
     h, w = image.shape[:2]
     x1, y1, x2, y2 = [int(round(b)) for b in bbox]
+
+    if shrink_ratio > 0:
+        dx = int(round((x2 - x1) * shrink_ratio))
+        dy = int(round((y2 - y1) * shrink_ratio))
+        x1 += dx
+        x2 -= dx
+        y1 += dy
+        y2 -= dy
 
     x1 += offsets.get("x1", 0)
     x2 -= offsets.get("x2", 0)
