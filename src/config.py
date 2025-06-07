@@ -16,20 +16,20 @@ SERVO_PIN = 17  # GPIO pin Raspberry Pi
 CAMERA_INDEX = 0
 
 PREPROCESS_PARAMS = {
-    "width": 500,
-    "bilateral_d": 11,
-    "block_size": 25,
-    "c": 10,
-    "thresh_method": "otsu",
-    "inv": True,
+    "width": 421,
+    "bilateral_d": 9,
+    "block_size": 37,
+    "c": 38,
+    "thresh_method": "mean",
+    "inv": False,
     "deskew_apply": False,
 }
 
 # Przycinanie wykrytej tablicy przed OCR
-CROP_OFFSETS = {"x1": 35, "x2": 12, "y1": 1, "y2": 0}
+CROP_OFFSETS = {"x1": 34, "x2": 10, "y1": 0, "y2": 0}
 
 # Minimalne prawdopodobieństwo wykrycia tablicy
-CONFIDENCE_THRESHOLD = 0.23377228126973296
+CONFIDENCE_THRESHOLD = 0.583906527654457
 
 # Konfiguracja tesseracta używana w OCR
 TESSERACT_CONFIG = (
