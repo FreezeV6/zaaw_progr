@@ -103,8 +103,8 @@ OPTIMIZER_SPACE = {
     "dilate_iter": [0, 1, 2, 3],
 
     # --- TESSERACT CONFIG ---
-    "psm": [6, 7, 8],
-    "oem": [0, 1, 2, 3],
+    "psm": [8],
+    "oem": [3],
 
     # --- OCR CONFIDENCE FILTER ---
     "ocr_conf_min": (0.0, 0.7),
