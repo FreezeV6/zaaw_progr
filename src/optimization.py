@@ -40,10 +40,10 @@ def find_best_parameters(
 
     # definiujemy przestrzeń przeszukiwania na podstawie config
     dims = [
-        Integer(OPTIMIZER_SPACE["width"], name="width"),
+        Integer(*OPTIMIZER_SPACE["width"], name="width"),
         Categorical(OPTIMIZER_SPACE["bilateral_d"], name="bilateral_d"),
         Categorical(OPTIMIZER_SPACE["block_size"], name="block_size"),
-        Integer(OPTIMIZER_SPACE["c"], name="c"),
+        Integer(*OPTIMIZER_SPACE["c"], name="c"),
         Categorical(OPTIMIZER_SPACE["inv"], name="inv"),
         Real(*OPTIMIZER_SPACE["conf"], name="conf"),
         Integer(*OPTIMIZER_SPACE["x1"], name="x1"),

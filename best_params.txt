@@ -1,2 +1,40 @@
 Best accuracy: 0.55
-Params: {'preprocess': {'width': np.int64(500), 'bilateral_d': np.int64(11), 'block_size': np.int64(25), 'c': np.int64(10), 'thresh_method': np.str_('otsu'), 'deskew_apply': np.False_}, 'crop_offsets': {'x1': np.int64(35), 'x2': np.int64(12), 'y1': np.int64(1), 'y2': np.int64(0)}, 'conf': 0.23377228126973296, 'tesseract': '--oem 3 --psm 8 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'}
+Params: {
+    "preprocess": {
+        "width": np.int64(500),
+        "bilateral_d": np.int64(11),
+        "block_size": np.int64(25),
+        "c": np.int64(10),
+        "thresh_method": np.str_("otsu"),
+        "deskew_apply": np.False_,
+    },
+    "crop_offsets": {
+        "x1": np.int64(35),
+        "x2": np.int64(12),
+        "y1": np.int64(1),
+        "y2": np.int64(0),
+    },
+    "conf": 0.23377228126973296,
+    "tesseract": "--oem 3 --psm 8 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+}
+-----------------------------------------------------------------------------------------------------
+Best accuracy: 0.5918367346938775
+Params: {
+    "preprocess": {
+        "width": np.int64(421),
+        "bilateral_d": np.int64(9),
+        "block_size": np.int64(37),
+        "c": np.int64(38),
+        "thresh_method": np.str_("mean"),
+        "inv": np.False_,
+        "deskew_apply": np.False_,
+    },
+    "crop_offsets": {
+        "x1": np.int64(34),
+        "x2": np.int64(10),
+        "y1": np.int64(0),
+        "y2": np.int64(0),
+    },
+    "conf": 0.583906527654457,
+    "tesseract": "--oem 3 --psm 8 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+}
