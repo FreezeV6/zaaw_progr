@@ -1,4 +1,5 @@
 import pandas as pd
+import ast
 from skopt import gp_minimize
 from skopt.space import Integer, Real, Categorical
 from skopt.utils import use_named_args
@@ -12,6 +13,18 @@ from config import (
     OPTIMIZER_SPACE,
     CROP_OFFSETS,
 )
+
+
+def _encode_tuple(t: tuple[int, int]) -> str:
+    """Return a stable string representation for a tuple dimension."""
+    return repr(t)
+
+
+def _decode_tuple(val):
+    """Decode tuple string back to tuple of ints."""
+    if isinstance(val, str) and val.startswith("("):
+        return tuple(ast.literal_eval(val))
+    return val
 
 
 def load_dataset(csv_path):
@@ -48,9 +61,10 @@ def find_best_parameters(
         Categorical(OPTIMIZER_SPACE["deskew_border"], name="deskew_border"),
         Integer(*OPTIMIZER_SPACE["width"], name="width"),
         Real(*OPTIMIZER_SPACE["clahe_clip"], name="clahe_clip"),
-        Categorical(OPTIMIZER_SPACE["clahe_tile_grid"], name="clahe_tile_grid"),
+        Categorical([_encode_tuple(t) for t in OPTIMIZER_SPACE["clahe_tile_grid"]], name="clahe_tile_grid"),
         Real(*OPTIMIZER_SPACE["gamma"], name="gamma"),
         Categorical(OPTIMIZER_SPACE["blur_method"], name="blur_method"),
+        Categorical([_encode_tuple(t) for t in OPTIMIZER_SPACE["gaussian_kernel"]], name="gaussian_kernel"),
         Categorical(OPTIMIZER_SPACE["gaussian_kernel"], name="gaussian_kernel"),
         Categorical(OPTIMIZER_SPACE["bilateral_d"], name="bilateral_d"),
         Real(*OPTIMIZER_SPACE["sigma_color"], name="sigma_color"),
@@ -70,6 +84,8 @@ def find_best_parameters(
 
     @use_named_args(dims)
     def objective(**params):
+        params["gaussian_kernel"] = _decode_tuple(params["gaussian_kernel"])
+        params["clahe_tile_grid"] = _decode_tuple(params["clahe_tile_grid"])
         preprocess = {
             "width": params["width"],
             "blur_method": params["blur_method"],
@@ -124,6 +140,8 @@ def find_best_parameters(
 
     # odpakowujemy najlepsze wartości
     best_vals = dict(zip((d.name for d in dims), result.x))
+    best_vals["gaussian_kernel"] = _decode_tuple(best_vals["gaussian_kernel"])
+    best_vals["clahe_tile_grid"] = _decode_tuple(best_vals["clahe_tile_grid"])
     best_acc  = -result.fun
 
     best_params = {
