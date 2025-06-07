@@ -34,11 +34,11 @@ def camera_loop():
                 bbox = det[:4]
                 x1, y1, x2, y2 = [int(x) for x in bbox]
                 cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                plate_img = crop_bbox(frame, bbox, offsets=CROP_OFFSETS, shrink_ratio=SHRINK_RATIO)
+                plate_img = crop_bbox(frame, bbox, offsets=LIVE_CROP_OFFSETS, shrink_ratio=LIVE_SHRINK_RATIO)
                 plate_txt, prep_img = recognize_plate(
                     plate_img,
                     "cam",
-                    preprocess_params=PREPROCESS_PARAMS,
+                    preprocess_params=LIVE_PREPROCESS_PARAMS,
                     tesseract_config=TESSERACT_CONFIG,
                     ocr_conf_min=OCR_CONF_MIN,
                     show_prep_img=True
