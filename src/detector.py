@@ -1,5 +1,6 @@
 from ultralytics import YOLO
 from config import MODEL_PATH
+import numpy as np
 
 
 class PlateDetector:
@@ -11,9 +12,17 @@ class PlateDetector:
     def detect(self, image, conf: float | None = None, iou: float | None = None):
         conf_val = conf if conf is not None else self.default_conf
         iou_val = iou if iou is not None else self.default_iou
-        results = self.model(image, conf=conf_val, iou=iou_val)
+        results = self.model.predict(image, conf=conf_val, iou=iou_val, verbose=False)
         if not results:
             return []
         # xyxy: (N,4), confidence, class
-        preds = results[0].boxes.xyxy.cpu().numpy()
+        boxes = results[0].boxes
+        preds = np.hstack(
+            (
+                boxes.xyxy.cpu().numpy(),
+                boxes.conf.cpu().numpy().reshape(-1, 1),
+                boxes.cls.cpu().numpy().reshape(-1, 1),
+            )
+        )
+        preds = preds[preds[:, 4].argsort()[::-1]]
         return preds

@@ -41,15 +41,15 @@ def evaluate(
         val_iou = iou([float(xtl), float(ytl), float(xbr), float(ybr)], best)
         plate_img = crop_bbox(img, best, offsets=crop_offsets, shrink_ratio=shrink_ratio)
         cv2.imwrite(os.path.join("test", f'plate_{fname}'), plate_img)
-        pred = recognize_plate(
+        pred_text, _ = recognize_plate(
             plate_img,
             fname,
             preprocess_params,
             tesseract_config,
             ocr_conf_min,
         )
-        print(f'{fname}, {gt_plate}, {pred}')
-        return (pred == gt_plate, val_iou)
+        print(f'{fname}, {gt_plate}, {pred_text}')
+        return (pred_text == gt_plate, val_iou)
 
     with ThreadPoolExecutor(max_workers=num_threads) as ex:
         results = list(ex.map(process, data))

@@ -76,6 +76,7 @@ LIVE_SHRINK_RATIO = 0.0
 
 # Minimalne prawdopodobieństwo wykrycia tablicy
 YOLO_CONFIDENCE = 0.4481218981217491
+LIVE_YOLO_CONFIDENCE = 0.25
 YOLO_NMS_IOU = 0.4047360392815532
 SEED = 114
 OCR_CONF_MIN = 0.1921366962440251
@@ -102,7 +103,7 @@ OPTIMIZER_SPACE = {
     "shrink_ratio": (0.0, 0.2),
 
     # --- DESKEW ---
-    "deskew_apply": [False, True],
+    "deskew_apply": [False],
     "deskew_border": [cv2.BORDER_CONSTANT, cv2.BORDER_REPLICATE],
 
     # --- RESIZE ---
@@ -126,13 +127,62 @@ OPTIMIZER_SPACE = {
     "thresh_method": ["otsu", "gaussian", "mean", "adaptive"],
     "adaptive_block": [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41, 43, 45, 47, 49, 51],
     "adaptive_C": (-10, 10),
-    "inv": [False, True],
+    "inv": [False],
 
     # --- MORPHOLOGY ---
     "kernel_size": [3, 5, 7, 9, 11],
     "open_iter": [0, 1, 2, 3],
     "close_iter": [0, 1, 2, 3],
     "dilate_iter": [0, 1, 2, 3],
+
+    # --- TESSERACT CONFIG ---
+    "psm": [8],
+    "oem": [3],
+
+    # --- OCR CONFIDENCE FILTER ---
+    "ocr_conf_min": (0.0, 0.7),
+}
+
+LIVE_OPTIMIZER_SPACE = {
+    # --- DETECTION ---
+    "yolo_conf": (0.1, 0.5),
+    "yolo_nms": (0.3, 0.6),
+
+    # --- CROPPING/SHRINK ---
+    "shrink_ratio": (0.0, 0.2),
+
+    # --- DESKEW ---
+    "deskew_apply": [False],
+    "deskew_border": [cv2.BORDER_CONSTANT],
+
+    # --- RESIZE ---
+    "width": (300, 800),
+
+    # --- CLAHE ---
+    "clahe_clip": (1.0, 10.0),
+    "clahe_tile_grid": [(8, 8), (16, 16)],
+
+    # --- GAMMA ---
+    "gamma": (0.5, 2.5),
+
+    # --- BLUR ---
+    "blur_method": ["gaussian", "bilateral"],
+    "gaussian_kernel": [(3, 3), (5, 5)],
+    "bilateral_d": [5, 9],
+    "sigma_color": (15, 75),
+    "sigma_space": (15, 75),
+
+    # --- THRESHOLDING ---
+    "thresh_method": ["otsu", "adaptive"],
+    "adaptive_block": [3,15, 31],
+    "adaptive_C": (-10, 10),
+    "inv": [False],
+
+    # --- MORPHOLOGY ---
+    "kernel_size": [3, 5],
+    "open_iter": [0],
+    "close_iter": [0],
+    "dilate_iter": [0],
 
     # --- TESSERACT CONFIG ---
     "psm": [8],
