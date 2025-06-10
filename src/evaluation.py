@@ -5,7 +5,6 @@ from tqdm import tqdm
 from utils import iou, crop_bbox
 from ocr import recognize_plate
 import cv2
-import os
 from concurrent.futures import ThreadPoolExecutor
 import threading
 
@@ -49,7 +48,7 @@ def evaluate(
             tesseract_config,
             ocr_conf_min,
         )
-        # print(fname) if pred_text != gt_plate else None
+        # print(f'{fname}, {gt_plate}, {pred_text}')
         return (pred_text == gt_plate, val_iou)
 
     with ThreadPoolExecutor(max_workers=num_threads) as ex:
