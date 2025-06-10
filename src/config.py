@@ -193,4 +193,4 @@ LIVE_OPTIMIZER_SPACE = {
     "ocr_conf_min": (0.0, 0.7),
 }
 
-rand = random.Random(random.choice(SEED))
+random = random.Random(random.choice(SEED))

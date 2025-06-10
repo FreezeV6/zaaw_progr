@@ -11,7 +11,7 @@ from config import (
     YOLO_NMS_IOU,
     TESSERACT_CONFIG,
     OCR_CONF_MIN,
-    rand,
+    random,
 )
 
 def load_dataset(csv_path):
@@ -25,7 +25,7 @@ if __name__ == "__main__":
     detector = PlateDetector()
     data = load_dataset(CSV_PATH)
     if len(data) > 100:
-        data = rand.sample(data, 100)
+        data = random.sample(data, 100)
     accuracy, elapsed, avg_iou = evaluate(
         detector,
         data,
