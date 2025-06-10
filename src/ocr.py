@@ -184,7 +184,7 @@ def recognize_plate(
     text = "".join(data.get("text", [])).upper()
     confs = [float(c) for c in data.get("conf", []) if c != "-1"]
     avg_conf = (sum(confs) / len(confs) / 100) if confs else 0.0
-    cv2.imwrite(os.path.join("test", f"plate_prep_{fname}.jpg"), img_prep)
+    # cv2.imwrite(os.path.join("test", f"plate_prep_{fname}.jpg"), img_prep)
     text = re.sub(r"[^A-Z0-9]", "", text.upper())
     text = process_text(text)
     return text, img_prep if show_prep_img else None

@@ -1,5 +1,6 @@
 import os
 import cv2
+import random
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 DATA_DIR = os.path.join(BASE_DIR, 'data')
@@ -78,7 +79,7 @@ LIVE_SHRINK_RATIO = 0.0
 YOLO_CONFIDENCE = 0.4481218981217491
 LIVE_YOLO_CONFIDENCE = 0.25
 YOLO_NMS_IOU = 0.4047360392815532
-SEED = 114
+SEED = [3, 4, 13, 15, 16, 21, 28, 36, 38, 39]
 OCR_CONF_MIN = 0.1921366962440251
 
 # Konfiguracja tesseracta używana w OCR
@@ -191,3 +192,5 @@ LIVE_OPTIMIZER_SPACE = {
     # --- OCR CONFIDENCE FILTER ---
     "ocr_conf_min": (0.0, 0.7),
 }
+
+rand = random.Random(random.choice(SEED))

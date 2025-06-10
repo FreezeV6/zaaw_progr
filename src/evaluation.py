@@ -1,4 +1,7 @@
 import time
+
+from tqdm import tqdm
+
 from utils import iou, crop_bbox
 from ocr import recognize_plate
 import cv2
@@ -10,7 +13,7 @@ def evaluate(
     detector,
     data,
     images_dir,
-    num_threads: int = 4,
+    num_threads: int = 8,
     preprocess_params: dict | None = None,
     crop_offsets: dict | None = None,
     conf: float | None = None,
@@ -24,7 +27,6 @@ def evaluate(
 
     if crop_offsets is None:
         crop_offsets = {"x1": 15, "x2": 0, "y1": 0, "y2": 0}
-
     lock = threading.Lock()
 
     def process(row):
@@ -40,7 +42,6 @@ def evaluate(
         best = dets[0][:4]
         val_iou = iou([float(xtl), float(ytl), float(xbr), float(ybr)], best)
         plate_img = crop_bbox(img, best, offsets=crop_offsets, shrink_ratio=shrink_ratio)
-        cv2.imwrite(os.path.join("test", f'plate_{fname}'), plate_img)
         pred_text, _ = recognize_plate(
             plate_img,
             fname,
@@ -48,11 +49,11 @@ def evaluate(
             tesseract_config,
             ocr_conf_min,
         )
-        print(f'{fname}, {gt_plate}, {pred_text}')
+        # print(fname) if pred_text != gt_plate else None
         return (pred_text == gt_plate, val_iou)
 
     with ThreadPoolExecutor(max_workers=num_threads) as ex:
-        results = list(ex.map(process, data))
+        results = list(tqdm(ex.map(process, data), total=len(data), desc="Przetwarzanie tablic"))
 
     for res in results:
         if res is None:

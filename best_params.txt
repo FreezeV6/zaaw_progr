@@ -72,3 +72,9 @@ Params: {
 }
 
 SEED = 605875 -- 78.00 acc
+Seed 3: accuracy=0.8000
+Seed 4: accuracy=0.8100
+Seed 15 accuracy=0.8100
+Seed 16 accuracy=0.8200
+Seed 13: accuracy=0.8000
+Seed 21: accuracy=0.8000
